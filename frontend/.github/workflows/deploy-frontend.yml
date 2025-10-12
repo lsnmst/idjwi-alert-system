@@ -3,7 +3,7 @@ name: Deploy Frontend to GitHub Pages
 on:
   push:
     branches:
-      - main   # or master
+      - main  # or master
   workflow_dispatch:
 
 jobs:
@@ -14,21 +14,8 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 20
-
-    - name: Install dependencies (optional)
-      run: npm install
-      working-directory: frontend  # only if you have package.json
-
-    - name: Build (optional)
-      run: npm run build
-      working-directory: frontend  # if you have a build step
-
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v6
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./frontend   # path to your frontend folder
+        publish_dir: ./frontend   # <-- point here to your frontend folder
