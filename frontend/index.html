@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GLAD Alerts Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <!-- Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Supabase v2 UMD -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+    <script>
+        window.onload = async function () {
+            try {
+                // -----------------------------
+                // Initialize Supabase (UMD)
+                // -----------------------------
+                const supabaseUrl = 'https://sgjcevsavckwsjplzned.supabase.co';
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnamNldnNhdmNrd3NqcGx6bmVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMjMyOTgsImV4cCI6MjA3NTc5OTI5OH0.eeUvKqddDTk7G1MBzQPhoNB15NIpFIrvKk90PAOYbQQ';
+                const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey); // ✅ lowercase "supabase"
+
+                // -----------------------------
+                // Initialize Leaflet map
+                // -----------------------------
+                const map = L.map('map').setView([-1.5, 29.5], 9);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+
+                // -----------------------------
+                // Fetch alerts from Supabase
+                // -----------------------------
+                const { data, error } = await supabaseClient
+                    .from('alerts')
+                    .select('geom, alert_value');
+
+                if (error) {
+                    console.error('Supabase error:', error);
+                    return;
+                }
+
+                console.log('Alerts fetched:', data);
+
+                // -----------------------------
+                // Add points to map
+                // -----------------------------
+                data.forEach(alert => {
+                    if (!alert.geom) return;
+
+                    const coords = alert.geom.coordinates;  // GeoJSON coordinates
+                    const lon = coords[0];
+                    const lat = coords[1];
+
+                    L.circleMarker([lat, lon], {
+                        radius: 5,
+                        color: 'red',
+                        fillOpacity: 0.7
+                    }).addTo(map);
+                });
+            } catch (err) {
+                console.error('Error initializing map:', err);
+            }
+        };
+    </script>
+</body>
+
+</html>
