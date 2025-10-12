@@ -1,0 +1,6 @@
+geopandas
+rasterio
+shapely
+psycopg2-binary
+requests
+python-dotenv
