@@ -57,17 +57,23 @@ def rasters_to_centroids(alert_bytes, date_bytes, aoi_geom):
         for row in range(alert_arr.shape[0]):
             for col in range(alert_arr.shape[1]):
                 val = alert_arr[row, col]
-                if val > 0:
+
+                # We include only probable (2) and confirmed (3) losses
+                if val in [2, 3]:
                     x, y = alert_src.xy(row, col)
-                    # Correct conversion from days since 2025-01-01
-                    alert_date = datetime(2025, 1, 1) + timedelta(days=int(date_arr[row, col]))
-                    pt = Point(x, y)
-                    if aoi_geom.contains(pt):
-                        centroids.append({
-                            "geometry": pt,
-                            "alert_value": int(val),
-                            "alert_date": alert_date
-                        })
+                    day_of_year = int(date_arr[row, col])
+
+                    if day_of_year > 0 and day_of_year <= 366:
+                        alert_date = datetime(2025, 1, 1) + timedelta(days=day_of_year - 1)
+                        pt = Point(x, y)
+
+                        if aoi_geom.contains(pt):
+                            centroids.append({
+                                "geometry": pt,
+                                "alert_value": int(val),
+                                "alert_date": alert_date,
+                                "loss_type": "confirmed" if val == 3 else "probable"
+                            })
 
     return gpd.GeoDataFrame(centroids, crs="EPSG:4326")
 
@@ -81,11 +87,11 @@ def insert_into_db(gdf):
         for _, row in gdf.iterrows():
             cur.execute(
                 """
-                INSERT INTO alerts (geom, alert_value, alert_date)
-                VALUES (ST_GeomFromText(%s, 4326), %s, %s)
+                INSERT INTO alerts (geom, alert_value, alert_date, loss_type)
+                VALUES (ST_GeomFromText(%s, 4326), %s, %s, %s)
                 ON CONFLICT (geom, alert_date) DO NOTHING;
                 """,
-                (row["geom_wkt"], row["alert_value"], row["alert_date"]),
+                (row["geom_wkt"], row["alert_value"], row["alert_date"], row["loss_type"]),
             )
         conn.commit()
     conn.close()
