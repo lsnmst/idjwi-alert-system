@@ -1,76 +1,552 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 
 <head>
     <meta charset="UTF-8">
-    <title>GLAD Alerts Map</title>
+    <title>GLAD Alerts – Idjwi</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
     <style>
+        @font-face {
+            font-family: 'Karla-Cedille';
+            src: url('assets/fonts/Cedille.woff2') format('woff2');
+            font-style: normal;
+            font-weight: 500;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Karla-Cedille', sans-serif;
+            color: #213547;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: #fff;
+            font-optical-sizing: auto;
+            line-height: 1.25;
+            font-size: 1rem;
+            font-weight: 400;
+            font-synthesis: none;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* MAP */
         #map {
             width: 100%;
-            height: 100vh;
+            height: 90vh;
+        }
+
+        /* FOOTER */
+        #footer {
+            height: 10vh;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            background: #fff;
+            color: #213547;
+            border-top: 1px solid #21354720;
+            background-image: url('assets/orchard-_ppFX2in.svg');
+            background-size: 100px 100px;
+        }
+
+        #footer h1 {
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        #info-btn {
+            background: none;
+            border: #213547 1px solid;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            color: #213547;
+            font-family: 'Karla-Cedille';
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        #info-btn:hover {
+            background: #ff6f6f;
+        }
+
+        .leaflet-control-timebar {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            font-family: 'Karla-Cedille';
+            font-size: 1.1rem;
+            color: #213547;
+            width: 240px;
+        }
+
+        .timebar-label {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 1.2rem;
+        }
+
+        .timebar-slider {
+            width: 100%;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
+            align-items: center;
+            justify-content: center;
+            outline: 1px solid #213547 !important;
+            outline-offset: 5px;
+        }
+
+        .modal-content {
+            background: #fff;
+            color: #213547;
+            background-image: url('assets/orchard-_ppFX2in.svg');
+            background-size: 100px 100px;
+            padding: 30px;
+            border-radius: 5px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            font-family: 'Karla-Cedille';
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            color: #213547;
+        }
+
+        .modal-content p {
+            line-height: 1.6;
+            font-size: 1.3rem;
+        }
+
+        .close-btn {
+            margin-top: 20px;
+            background: #202020;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Karla-Cedille';
+        }
+
+        .close-btn:hover {
+            background: #444;
+        }
+
+        .copy-btn {
+            font-family: 'Karla-Cedille', sans-serif;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            margin-left: 4px;
+            color: #fff;
+        }
+
+        #copy-message {
+            font-family: 'Karla-Cedille', sans-serif;
+            font-size: 1.1rem;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .leaflet-container {
+            background: #ffffff !important;
+        }
+
+        .leaflet-control-attribution,
+        .leaflet-popup-tip {
+            display: none;
+        }
+
+        .leaflet-popup {
+            font-family: 'Karla-Cedille', sans-serif;
+        }
+
+        .copied-popup .leaflet-popup-content-wrapper {
+            background: #333;
+            color: #fff;
+            font-size: 1.1rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        #timebar {
+            margin-bottom: 10px !important;
+            background-image: url('assets/orchard-_ppFX2in.svg');
+            background-size: 100px 100px;
+            background-color: #fff;
+
+        }
+
+        .timebar-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 6px 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            font-family: 'Karla-Cedille';
+            font-size: 1.1rem;
+            color: #213547;
+        }
+
+        .timebar-bar input[type="date"] {
+            padding: 3px 6px;
+            border: 1px solid #213547;
+            border-radius: 4px;
+            font-family: 'Karla-Cedille';
+        }
+
+        .timebar-bar button {
+            padding: 5px 10px;
+            font-family: 'Karla-Cedille';
+            border: 1px solid #213547;
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .timebar-bar button:hover {
+            background: #ff6f6f;
+            color: #fff;
+        }
+
+        @media (max-width: 480px) {
+            #footer {
+                height: auto;
+                /* allow more space */
+                flex-direction: column;
+                /* stack h1 + button */
+                align-items: center;
+                padding: 20px;
+            }
+
+            #footer h1 {
+                font-size: 2rem !important;
+                /* readable on mobile */
+                text-align: center;
+                margin-bottom: 10px;
+                white-space: normal;
+                /* allow wrapping */
+            }
+
+            #info-btn {
+                font-size: 1rem;
+                padding: 8px 12px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div id="map"></div>
+    <div id="copy-message">Copied!</div>
+
+    <div class="timebar-bar">
+        <label for="start-date">De:</label>
+        <input type="date" id="start-date" lang="fr" class="timebar-slider">
+
+        <label for="end-date">À:</label>
+        <input type="date" id="end-date" lang="fr" class="timebar-slider">
+
+        <button id="apply-filter">Filtrer</button>
+    </div>
+
+
+    <div id="footer">
+        <h1>Système d'alerte de déforestation de l'île d'Idjwi</h1>
+        <button id="info-btn">Pourquoi l'utiliser ?</button>
+    </div>
+
+    <div id="info-modal" class="modal">
+        <div class="modal-content">
+            <h2>Pourquoi utiliser le système d'alerte de déforestation de l'île d'Idjwi</h2>
+            <p>
+                This interactive system displays recent GLAD forest alerts for the island of Idjwi.
+                The map shows the most recent alerts in red, providing near real-time insights into
+                potential deforestation events.
+            </p>
+            <p>
+                Data are retrieved from the Supabase database and displayed dynamically using Leaflet.
+            </p>
+            <button class="close-btn" id="close-modal">Close</button>
+        </div>
+    </div>
+
 
     <!-- Leaflet -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Supabase v2 UMD -->
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
     <script>
+
+        // Modal logic
+        const infoBtn = document.getElementById('info-btn');
+        const modal = document.getElementById('info-modal');
+        const closeModal = document.getElementById('close-modal');
+
+        infoBtn.addEventListener('click', () => modal.style.display = 'flex');
+        closeModal.addEventListener('click', () => modal.style.display = 'none');
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+
+        window.showCopyMessage = function () {
+            const msg = document.getElementById("copy-message");
+            msg.style.opacity = 1;
+            setTimeout(() => { msg.style.opacity = 0; }, 1000);
+        };
+
         window.onload = async function () {
             try {
                 // -----------------------------
-                // Initialize Supabase (UMD)
+                // 1️⃣ Supabase setup
                 // -----------------------------
                 const supabaseUrl = 'https://sgjcevsavckwsjplzned.supabase.co';
-                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnamNldnNhdmNrd3NqcGx6bmVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMjMyOTgsImV4cCI6MjA3NTc5OTI5OH0.eeUvKqddDTk7G1MBzQPhoNB15NIpFIrvKk90PAOYbQQ';
-                const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey); // ✅ lowercase "supabase"
+                const supabaseKey =
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnamNldnNhdmNrd3NqcGx6bmVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMjMyOTgsImV4cCI6MjA3NTc5OTI5OH0.eeUvKqddDTk7G1MBzQPhoNB15NIpFIrvKk90PAOYbQQ';
+                const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
                 // -----------------------------
-                // Initialize Leaflet map
+                // 2️⃣ Map initialization
                 // -----------------------------
-                const map = L.map('map').setView([-1.5, 29.5], 9);
+                const mapBounds = L.latLngBounds([-2.3293, 28.9075], [-1.8339, 29.207]);
+                const map = L.map('map', {
+                    minZoom: 10,
+                    maxZoom: 16,
+                    maxBounds: mapBounds
+                }).setView([-2.1, 29.05], 10);
 
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(map);
+                const miniTileLayer = L.tileLayer(
+                    "https://www.alessandromusetta.com/geo/tiles/minimapidjwi/{z}/{x}/{y}.png",
+                    { minZoom: 8, maxZoom: 12, noWrap: true, attribution: "" }
+                ).addTo(map);
+
+                const mainTileLayer = L.tileLayer(
+                    "https://www.alessandromusetta.com/geo/tiles/idjwi/{z}/{x}/{y}.jpg",
+                    { minZoom: 13, maxZoom: 16, noWrap: true, attribution: "" }
+                ).addTo(map);
 
                 // -----------------------------
-                // Fetch alerts from Supabase
+                // 3️⃣ Fetch all alerts
                 // -----------------------------
                 const { data, error } = await supabaseClient
                     .from('alerts')
-                    .select('geom, alert_value');
+                    .select('geom, alert_value, alert_date');
 
                 if (error) {
                     console.error('Supabase error:', error);
                     return;
                 }
 
-                console.log('Alerts fetched:', data);
+                if (!data || data.length === 0) {
+                    console.warn("⚠️ No alerts found in database.");
+                    return;
+                }
+
+                let allAlerts = data.filter(a => a.alert_date);
+
+                // Sort once by date ascending
+                allAlerts.sort((a, b) => new Date(a.alert_date) - new Date(b.alert_date));
+
+                // Set preset min/max in date filter
+                const startInput = document.getElementById('start-date');
+                const endInput = document.getElementById('end-date');
+                const oldest = new Date(allAlerts[0].alert_date);
+                const newest = new Date(allAlerts[allAlerts.length - 1].alert_date);
+
+                // Format to yyyy-mm-dd for <input type="date">
+                const toInputDate = d => d.toISOString().split('T')[0];
+                startInput.value = toInputDate(oldest);
+                endInput.value = toInputDate(newest);
+                startInput.min = toInputDate(oldest);
+                startInput.max = toInputDate(newest);
+                endInput.min = toInputDate(oldest);
+                endInput.max = toInputDate(newest);
 
                 // -----------------------------
-                // Add points to map
+                // 4️⃣ Rendering function
                 // -----------------------------
-                data.forEach(alert => {
-                    if (!alert.geom) return;
+                function renderAlerts(alerts) {
+                    // Remove previous alert layers (keep tiles)
+                    map.eachLayer(layer => {
+                        if (layer instanceof L.Rectangle || layer instanceof L.Circle || layer instanceof L.Marker) {
+                            if (!layer._url) map.removeLayer(layer);
+                        }
+                    });
 
-                    const coords = alert.geom.coordinates;  // GeoJSON coordinates
-                    const lon = coords[0];
-                    const lat = coords[1];
+                    const sortedAlerts = alerts
+                        .filter(a => a.alert_date)
+                        .sort((a, b) => new Date(b.alert_date) - new Date(a.alert_date));
 
-                    L.circleMarker([lat, lon], {
-                        radius: 5,
-                        color: 'red',
-                        fillOpacity: 0.7
-                    }).addTo(map);
+                    const visibleAlerts = sortedAlerts.filter(a => {
+                        if (!a.geom?.coordinates) return false;
+                        const [lon, lat] = a.geom.coordinates;
+                        return mapBounds.contains([lat, lon]);
+                    });
+
+                    const latestVisibleAlert = visibleAlerts[0];
+                    const secondVisibleAlert = visibleAlerts[1];
+
+                    const halfSideDeg = 0.000135; // ~30 m
+                    const circleRadius = 120; // meters
+
+                    visibleAlerts.forEach(alert => {
+                        const [lon, lat] = alert.geom.coordinates;
+                        const alertDate = new Date(alert.alert_date);
+                        const formattedDate = alertDate.toLocaleDateString('fr-FR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                        });
+
+                        let color = 'red', weight = 1, fillOpacity = 0.6;
+                        if (alert === latestVisibleAlert) { weight = 2; fillOpacity = 0.9; }
+                        else if (alert === secondVisibleAlert) { weight = 2; fillOpacity = 0.8; }
+
+                        // 🔲 Square
+                        L.rectangle(
+                            [[lat - halfSideDeg, lon - halfSideDeg], [lat + halfSideDeg, lon + halfSideDeg]],
+                            { color, weight, fillColor: color, fillOpacity }
+                        ).addTo(map);
+
+                        // ⭕ Circle
+                        L.circle([lat, lon], {
+                            radius: circleRadius, color, weight: 1.5, opacity: 0.5, fill: false
+                        }).addTo(map);
+
+                        // 🏷️ Label for latest alerts
+                        if (alert === latestVisibleAlert || alert === secondVisibleAlert) {
+                            const latStr = lat.toFixed(6);
+                            const lonStr = lon.toFixed(6);
+                            const labelHtml = `
+              DERNIÈRE ALERTE<br>${formattedDate}<br>
+              <span style="border:1px white solid">
+                <span style="font-size:11px; color:white; padding:8px" id="coord-${latStr}-${lonStr}">
+                  ${latStr}, ${lonStr}
+                </span>
+                <button class="copy-btn" id="copy-${latStr}-${lonStr}">⎘</button>
+              </span>
+            `;
+
+                            const label = L.divIcon({
+                                className: 'alert-label',
+                                html: `<div class="alert-label" style="
+                  background: rgba(255,0,0,0.9);
+                  border-radius: 6px;
+                  padding: 4px 6px;
+                  font-size: 1.1em;
+                  font-weight: bold;
+                  color: #fff;
+                  text-align: center;
+                  box-shadow: 0 0 4px rgba(0,0,0,0.2);
+              ">${labelHtml}</div>`,
+                                iconSize: [210, 60],
+                                iconAnchor: [105, 50]
+                            });
+
+                            const offset = alert === latestVisibleAlert ? 0.0016 : 0.001;
+                            const marker = L.marker([lat + offset, lon], { icon: label }).addTo(map);
+
+                            setTimeout(() => {
+                                const btn = document.getElementById(`copy-${latStr}-${lonStr}`);
+                                if (btn) {
+                                    btn.addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        const coordsText = `${latStr},${lonStr}`;
+                                        navigator.clipboard.writeText(coordsText);
+
+                                        const popup = L.popup({
+                                            autoClose: true,
+                                            closeOnClick: true,
+                                            offset: [0, -20],
+                                            className: 'copied-popup'
+                                        })
+                                            .setLatLng([lat + offset, lon])
+                                            .setContent('Copied!')
+                                            .openOn(map);
+
+                                        setTimeout(() => map.closePopup(popup), 1000);
+                                    });
+                                }
+                            }, 100);
+                        } else {
+                            // 🧩 Popup for older alerts
+                            const popupContent = `
+              ${formattedDate}<br><br>
+              <span style="border:1px solid black;padding:5px">
+                Coordonnées : ${lat.toFixed(6)}, ${lon.toFixed(6)}
+                <button class="copy-btn" style="color:black;"
+                  onclick="navigator.clipboard.writeText('${lat.toFixed(6)},${lon.toFixed(6)}'); window.showCopyMessage();">⎘</button>
+              </span>
+            `;
+                            L.marker([lat, lon], { opacity: 0 })
+                                .addTo(map)
+                                .bindPopup(popupContent);
+                        }
+                    });
+
+                    if (latestVisibleAlert?.geom?.coordinates) {
+                        const [lon, lat] = latestVisibleAlert.geom.coordinates;
+                        map.setView([lat, lon], 14);
+                    }
+                }
+
+                // Initial render
+                renderAlerts(allAlerts);
+
+                // -----------------------------
+                // 5️⃣ Date Filter Logic
+                // -----------------------------
+                const applyBtn = document.getElementById('apply-filter'); // <-- define it first
+
+                applyBtn.addEventListener('click', () => {
+                    const start = new Date(startInput.value);
+                    const end = new Date(endInput.value);
+                    const filtered = allAlerts.filter(a => {
+                        const d = new Date(a.alert_date);
+                        return d >= start && d <= end;
+                    });
+                    renderAlerts(filtered);
+
+                    // Zoom to bounding box of filtered alerts
+                    if (filtered.length > 0) {
+                        const bounds = L.latLngBounds(
+                            filtered.map(a => [a.geom.coordinates[1], a.geom.coordinates[0]])
+                        );
+                        map.fitBounds(bounds, { padding: [50, 50] }); // padding in pixels
+                    }
                 });
+
             } catch (err) {
                 console.error('Error initializing map:', err);
             }
