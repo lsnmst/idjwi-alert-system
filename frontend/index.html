@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" translate="no">
 
 <head>
     <meta charset="UTF-8">
     <title>GLAD Alerts – Idjwi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
@@ -14,16 +15,36 @@
             font-weight: 500;
         }
 
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
         body {
             margin: 0;
+            padding: 0;
             font-family: 'Karla-Cedille', sans-serif;
             color: #213547;
+            width: 100%;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
             height: 100vh;
             background: #fff;
             font-optical-sizing: auto;
-            line-height: 1.25;
+            line-height: 1.2;
             font-size: 1rem;
             font-weight: 400;
             font-synthesis: none;
@@ -33,13 +54,20 @@
 
         /* MAP */
         #map {
+            flex: 1 1 auto;
             width: 100%;
-            height: 90vh;
+            min-height: 0;
+            height: 100%;
+        }
+
+        .leaflet-container {
+            width: 100% !important;
+            height: 100% !important;
         }
 
         /* FOOTER */
         #footer {
-            height: 10vh;
+            flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -49,6 +77,7 @@
             border-top: 1px solid #21354720;
             background-image: url('assets/orchard-_ppFX2in.svg');
             background-size: 100px 100px;
+            box-sizing: border-box;
         }
 
         #footer h1 {
@@ -70,7 +99,9 @@
         }
 
         #info-btn:hover {
-            background: #ff6f6f;
+            background: red;
+            color: #fff;
+            border: none;
         }
 
         .leaflet-control-timebar {
@@ -82,6 +113,23 @@
             font-size: 1.1rem;
             color: #213547;
             width: 240px;
+        }
+
+        .timebar-bar,
+        #footer {
+            flex-shrink: 0;
+        }
+
+        .timebar-bar {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 1rem;
+            box-sizing: border-box;
+            background: #fff;
+            border-top: 1px solid #21354720;
+            border-bottom: 1px solid #21354720;
         }
 
         .timebar-label {
@@ -121,6 +169,8 @@
             width: 90%;
             text-align: center;
             font-family: 'Karla-Cedille';
+            max-height: 80%;
+            overflow: auto;
         }
 
         .modal-content h2 {
@@ -129,8 +179,12 @@
         }
 
         .modal-content p {
-            line-height: 1.6;
-            font-size: 1.3rem;
+            line-height: 1.3;
+            font-size: 1.1rem;
+        }
+
+        .descr p {
+            font-size: 1rem !important;
         }
 
         .close-btn {
@@ -235,32 +289,80 @@
         }
 
         .timebar-bar button:hover {
-            background: #ff6f6f;
+            background: red;
             color: #fff;
         }
 
+        .timebar-slider {
+            font-family: 'Karla-Cedille' !important;
+        }
+
+        .flatpickr-calendar {
+            font-family: 'Karla-Cedille' !important;
+            border-radius: 8px !important;
+            border: 1px solid #21354740 !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0) !important;
+        }
+
+        .flatpickr-month {
+            background-image: url('assets/orchard-_ppFX2in.svg') !important;
+            background-size: 100px 100px !important;
+        }
+
+        .flatpickr-day.today {
+            border-color: red !important;
+            color: red !important;
+        }
+
+        .flatpickr-day.selected {
+            background: red !important;
+            border-color: red !important;
+            color: #fff !important;
+        }
+
+        .flatpickr-months,
+        .flatpickr-weekdays {
+            background: #fff !important;
+            color: #213547 !important;
+        }
+
+        .flatpickr-day:hover {
+            background: rgba(255, 0, 0, 0.1) !important;
+            color: red !important;
+        }
+
         @media (max-width: 480px) {
+
+            html,
+            body {
+                height: 100vh;
+                overflow: hidden;
+            }
+
+            #map {
+                height: 80vh;
+            }
+
+            .modal-content {
+                width: 80vw;
+            }
+
             #footer {
-                height: auto;
-                /* allow more space */
                 flex-direction: column;
-                /* stack h1 + button */
                 align-items: center;
-                padding: 20px;
+                justify-content: center;
+                padding: 1rem;
+                gap: 0.5rem;
+                width: 100%;
+                box-sizing: border-box;
+                height: 20vh;
             }
 
             #footer h1 {
-                font-size: 2rem !important;
-                /* readable on mobile */
+                font-size: 1.5rem;
                 text-align: center;
-                margin-bottom: 10px;
+                margin: 0;
                 white-space: normal;
-                /* allow wrapping */
-            }
-
-            #info-btn {
-                font-size: 1rem;
-                padding: 8px 12px;
             }
         }
     </style>
@@ -268,7 +370,7 @@
 
 <body>
     <div id="map"></div>
-    <div id="copy-message">Copied!</div>
+    <div id="copy-message">Coordonnées copiées !</div>
 
     <div class="timebar-bar">
         <label for="start-date">De:</label>
@@ -290,14 +392,45 @@
         <div class="modal-content">
             <h2>Pourquoi utiliser le système d'alerte de déforestation de l'île d'Idjwi</h2>
             <p>
-                This interactive system displays recent GLAD forest alerts for the island of Idjwi.
-                The map shows the most recent alerts in red, providing near real-time insights into
-                potential deforestation events.
+                L'île d'Idjwi est considérée comme l'île de la paix entre les lignes ennemies. Dans un conflit qui dure
+                depuis des décennies, elle n'a jamais été le théâtre de batailles, devenant ainsi le seul site naturel
+                sacré sécurisé parmi toutes les communautés qui bordent le lac Kivu.
             </p>
             <p>
-                Data are retrieved from the Supabase database and displayed dynamically using Leaflet.
+                Suite aux premières inquiétudes exprimées par les communautés vivant sur l'île concernant une récente
+                exploitation déséquilibrée des ressources naturelles et forestières, due à une nouvelle vague
+                d'extractivisme impliquant également des acteurs étrangers, nous avons mis en place ce système d'alerte
+                destiné aux habitants, afin qu'ils puissent surveiller l'île et veiller à ce qu'elle reste le site
+                naturel sacré et sécurisé qui a fait sa renommée.
             </p>
-            <button class="close-btn" id="close-modal">Close</button>
+            <div class="descr" style="margin-top: 3rem;">
+                <p><u>Comment ça marche</u></p>
+                <p>
+                    Ce système d'alerte met à jour la carte des alertes tous les 10 jours et, à son ouverture, elle
+                    affiche la localisation de la dernière alerte. Les coordonnées des alertes peuvent être facilement
+                    copiées afin
+                    d'être transmises aux appareils et applications cartographiques qui utilisent le GPS pour donner des
+                    directions.
+                </p>
+                <p>
+                    Les alertes sont obtenues en analysant les données du « GLAD Landsat alert system », à partir du 1er
+                    janvier 2025.<br>Chaque alerte GLAD indique une zone de 30 mètres sur 30 mètres qui a
+                    subi une perturbation dans la canopée forestière, ce qui signifie que les arbres de cette zone ont
+                    peut-être été perdus ou supprimés. Ainsi, chaque alerte correspond à une déforestation potentielle,
+                    <u>mais pas nécessairement due à une action anthropique ou illégale</u>. Les alertes ont pour but de
+                    fournir une indication précoce des endroits où une nouvelle déforestation pourrait avoir lieu, afin
+                    que les forces de l'ordre, les communautés, le leadership coutumier, les organisations militantes et
+                    les autres
+                    acteurs puissent prendre des mesures ciblées.
+                </p>
+                <p style="color: #aaa9a9;">
+                    Citation:<br>Hansen, Matthew C., Alexander Krylov, Alexandra Tyukavina, Peter V. Potapov, Svetlana
+                    Turubanova,
+                    Bryan Zutta, Suspense Ifo, Belinda Margono, Fred Stolle, and Rebecca Moore. “Humid Tropical Forest
+                    Disturbance Alerts Using Landsat Data.” Environmental Research Letters 11, no. 3 (2016): 034008.
+                </p>
+            </div>
+            <button class="close-btn" id="close-modal">Fermer</button>
         </div>
     </div>
 
@@ -306,251 +439,240 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- Flatpickr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
 
     <script>
+        (() => {
+            // -----------------------------
+            // 1️⃣ Modal Logic
+            // -----------------------------
+            const infoBtn = document.getElementById('info-btn');
+            const modal = document.getElementById('info-modal');
+            const closeModal = document.getElementById('close-modal');
 
-        // Modal logic
-        const infoBtn = document.getElementById('info-btn');
-        const modal = document.getElementById('info-modal');
-        const closeModal = document.getElementById('close-modal');
+            infoBtn.addEventListener('click', () => modal.style.display = 'flex');
+            closeModal.addEventListener('click', () => modal.style.display = 'none');
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.style.display = 'none';
+            });
 
-        infoBtn.addEventListener('click', () => modal.style.display = 'flex');
-        closeModal.addEventListener('click', () => modal.style.display = 'none');
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.style.display = 'none';
-        });
+            window.showCopyMessage = function () {
+                const msg = document.getElementById("copy-message");
+                msg.style.opacity = 1;
+                setTimeout(() => { msg.style.opacity = 0; }, 1000);
+            };
 
-        window.showCopyMessage = function () {
-            const msg = document.getElementById("copy-message");
-            msg.style.opacity = 1;
-            setTimeout(() => { msg.style.opacity = 0; }, 1000);
-        };
+            // -----------------------------
+            // 2️⃣ Initialize App
+            // -----------------------------
+            window.onload = async function () {
+                try {
+                    // Supabase setup
+                    const supabaseUrl = 'https://sgjcevsavckwsjplzned.supabase.co';
+                    const supabaseKey =
+                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnamNldnNhdmNrd3NqcGx6bmVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMjMyOTgsImV4cCI6MjA3NTc5OTI5OH0.eeUvKqddDTk7G1MBzQPhoNB15NIpFIrvKk90PAOYbQQ';
+                    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        window.onload = async function () {
-            try {
-                // -----------------------------
-                // 1️⃣ Supabase setup
-                // -----------------------------
-                const supabaseUrl = 'https://sgjcevsavckwsjplzned.supabase.co';
-                const supabaseKey =
-                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnamNldnNhdmNrd3NqcGx6bmVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMjMyOTgsImV4cCI6MjA3NTc5OTI5OH0.eeUvKqddDTk7G1MBzQPhoNB15NIpFIrvKk90PAOYbQQ';
-                const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                    // Map setup
+                    const mapBounds = L.latLngBounds([-2.3293, 28.9075], [-1.8339, 29.207]);
+                    const map = L.map('map', {
+                        minZoom: 10,
+                        maxZoom: 16,
+                        maxBounds: mapBounds
+                    }).setView([-2.1, 29.05], 11);
 
-                // -----------------------------
-                // 2️⃣ Map initialization
-                // -----------------------------
-                const mapBounds = L.latLngBounds([-2.3293, 28.9075], [-1.8339, 29.207]);
-                const map = L.map('map', {
-                    minZoom: 10,
-                    maxZoom: 16,
-                    maxBounds: mapBounds
-                }).setView([-2.1, 29.05], 10);
+                    L.tileLayer(
+                        "https://www.alessandromusetta.com/geo/tiles/minimapidjwi/{z}/{x}/{y}.png",
+                        { minZoom: 8, maxZoom: 12, noWrap: true, attribution: "" }
+                    ).addTo(map);
 
-                const miniTileLayer = L.tileLayer(
-                    "https://www.alessandromusetta.com/geo/tiles/minimapidjwi/{z}/{x}/{y}.png",
-                    { minZoom: 8, maxZoom: 12, noWrap: true, attribution: "" }
-                ).addTo(map);
+                    L.tileLayer(
+                        "https://www.alessandromusetta.com/geo/tiles/idjwi/{z}/{x}/{y}.jpg",
+                        { minZoom: 13, maxZoom: 16, noWrap: true, attribution: "" }
+                    ).addTo(map);
 
-                const mainTileLayer = L.tileLayer(
-                    "https://www.alessandromusetta.com/geo/tiles/idjwi/{z}/{x}/{y}.jpg",
-                    { minZoom: 13, maxZoom: 16, noWrap: true, attribution: "" }
-                ).addTo(map);
+                    // Fetch alerts
+                    const { data, error } = await supabaseClient
+                        .from('alerts')
+                        .select('geom, alert_value, alert_date');
 
-                // -----------------------------
-                // 3️⃣ Fetch all alerts
-                // -----------------------------
-                const { data, error } = await supabaseClient
-                    .from('alerts')
-                    .select('geom, alert_value, alert_date');
+                    if (error) throw error;
+                    if (!data || data.length === 0) {
+                        console.warn("⚠️ No alerts found in database.");
+                        return;
+                    }
 
-                if (error) {
-                    console.error('Supabase error:', error);
-                    return;
-                }
+                    let allAlerts = data.filter(a => a.alert_date);
+                    allAlerts.sort((a, b) => new Date(a.alert_date) - new Date(b.alert_date));
 
-                if (!data || data.length === 0) {
-                    console.warn("⚠️ No alerts found in database.");
-                    return;
-                }
+                    // Setup date pickers with Flatpickr
+                    const startInput = document.getElementById('start-date');
+                    const endInput = document.getElementById('end-date');
 
-                let allAlerts = data.filter(a => a.alert_date);
+                    const oldest = new Date(allAlerts[0].alert_date);
+                    const newest = new Date(allAlerts[allAlerts.length - 1].alert_date);
+                    const toInputDate = d => d.toISOString().split('T')[0];
 
-                // Sort once by date ascending
-                allAlerts.sort((a, b) => new Date(a.alert_date) - new Date(b.alert_date));
-
-                // Set preset min/max in date filter
-                const startInput = document.getElementById('start-date');
-                const endInput = document.getElementById('end-date');
-                const oldest = new Date(allAlerts[0].alert_date);
-                const newest = new Date(allAlerts[allAlerts.length - 1].alert_date);
-
-                // Format to yyyy-mm-dd for <input type="date">
-                const toInputDate = d => d.toISOString().split('T')[0];
-                startInput.value = toInputDate(oldest);
-                endInput.value = toInputDate(newest);
-                startInput.min = toInputDate(oldest);
-                startInput.max = toInputDate(newest);
-                endInput.min = toInputDate(oldest);
-                endInput.max = toInputDate(newest);
-
-                // -----------------------------
-                // 4️⃣ Rendering function
-                // -----------------------------
-                function renderAlerts(alerts) {
-                    // Remove previous alert layers (keep tiles)
-                    map.eachLayer(layer => {
-                        if (layer instanceof L.Rectangle || layer instanceof L.Circle || layer instanceof L.Marker) {
-                            if (!layer._url) map.removeLayer(layer);
+                    const flatpickrOptions = {
+                        locale: 'fr',
+                        dateFormat: "Y-m-d",
+                        altInput: true,
+                        altFormat: "d-m-Y",
+                        theme: 'default',
+                        onChange: function (selectedDates, dateStr) {
+                            console.log("📅 Selected:", dateStr);
                         }
+                    };
+
+                    const fpStart = flatpickr(startInput, {
+                        ...flatpickrOptions,
+                        defaultDate: toInputDate(oldest),
+                        minDate: toInputDate(oldest),
+                        maxDate: toInputDate(newest)
                     });
 
-                    const sortedAlerts = alerts
-                        .filter(a => a.alert_date)
-                        .sort((a, b) => new Date(b.alert_date) - new Date(a.alert_date));
-
-                    const visibleAlerts = sortedAlerts.filter(a => {
-                        if (!a.geom?.coordinates) return false;
-                        const [lon, lat] = a.geom.coordinates;
-                        return mapBounds.contains([lat, lon]);
+                    const fpEnd = flatpickr(endInput, {
+                        ...flatpickrOptions,
+                        defaultDate: toInputDate(newest),
+                        minDate: toInputDate(oldest),
+                        maxDate: toInputDate(newest)
                     });
 
-                    const latestVisibleAlert = visibleAlerts[0];
-                    const secondVisibleAlert = visibleAlerts[1];
-
-                    const halfSideDeg = 0.000135; // ~30 m
-                    const circleRadius = 120; // meters
-
-                    visibleAlerts.forEach(alert => {
-                        const [lon, lat] = alert.geom.coordinates;
-                        const alertDate = new Date(alert.alert_date);
-                        const formattedDate = alertDate.toLocaleDateString('fr-FR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
+                    // -----------------------------
+                    // 3️⃣ Rendering Alerts
+                    // -----------------------------
+                    function renderAlerts(alerts) {
+                        map.eachLayer(layer => {
+                            if (layer instanceof L.Rectangle || layer instanceof L.Circle || layer instanceof L.Marker) {
+                                if (!layer._url) map.removeLayer(layer);
+                            }
                         });
 
-                        let color = 'red', weight = 1, fillOpacity = 0.6;
-                        if (alert === latestVisibleAlert) { weight = 2; fillOpacity = 0.9; }
-                        else if (alert === secondVisibleAlert) { weight = 2; fillOpacity = 0.8; }
+                        const visibleAlerts = alerts.filter(a => {
+                            if (!a.geom?.coordinates) return false;
+                            const [lon, lat] = a.geom.coordinates;
+                            return mapBounds.contains([lat, lon]);
+                        }).sort((a, b) => new Date(b.alert_date) - new Date(a.alert_date));
 
-                        // 🔲 Square
-                        L.rectangle(
-                            [[lat - halfSideDeg, lon - halfSideDeg], [lat + halfSideDeg, lon + halfSideDeg]],
-                            { color, weight, fillColor: color, fillOpacity }
-                        ).addTo(map);
+                        const latest = visibleAlerts[0];
+                        const second = visibleAlerts[1];
+                        const halfSideDeg = 0.000135;
+                        const circleRadius = 120;
 
-                        // ⭕ Circle
-                        L.circle([lat, lon], {
-                            radius: circleRadius, color, weight: 1.5, opacity: 0.5, fill: false
-                        }).addTo(map);
-
-                        // 🏷️ Label for latest alerts
-                        if (alert === latestVisibleAlert || alert === secondVisibleAlert) {
-                            const latStr = lat.toFixed(6);
-                            const lonStr = lon.toFixed(6);
-                            const labelHtml = `
-              DERNIÈRE ALERTE<br>${formattedDate}<br>
-              <span style="border:1px white solid">
-                <span style="font-size:11px; color:white; padding:8px" id="coord-${latStr}-${lonStr}">
-                  ${latStr}, ${lonStr}
-                </span>
-                <button class="copy-btn" id="copy-${latStr}-${lonStr}">⎘</button>
-              </span>
-            `;
-
-                            const label = L.divIcon({
-                                className: 'alert-label',
-                                html: `<div class="alert-label" style="
-                  background: rgba(255,0,0,0.9);
-                  border-radius: 6px;
-                  padding: 4px 6px;
-                  font-size: 1.1em;
-                  font-weight: bold;
-                  color: #fff;
-                  text-align: center;
-                  box-shadow: 0 0 4px rgba(0,0,0,0.2);
-              ">${labelHtml}</div>`,
-                                iconSize: [210, 60],
-                                iconAnchor: [105, 50]
+                        visibleAlerts.forEach(alert => {
+                            const [lon, lat] = alert.geom.coordinates;
+                            const alertDate = new Date(alert.alert_date);
+                            const formatted = alertDate.toLocaleDateString('fr-FR', {
+                                day: '2-digit', month: '2-digit', year: 'numeric'
                             });
 
-                            const offset = alert === latestVisibleAlert ? 0.0016 : 0.001;
-                            const marker = L.marker([lat + offset, lon], { icon: label }).addTo(map);
+                            let color = 'red', weight = 1, fillOpacity = 0.6;
+                            if (alert === latest) { weight = 2; fillOpacity = 0.9; }
+                            else if (alert === second) { weight = 2; fillOpacity = 0.8; }
 
-                            setTimeout(() => {
-                                const btn = document.getElementById(`copy-${latStr}-${lonStr}`);
-                                if (btn) {
-                                    btn.addEventListener('click', (e) => {
-                                        e.stopPropagation();
-                                        const coordsText = `${latStr},${lonStr}`;
-                                        navigator.clipboard.writeText(coordsText);
+                            L.rectangle([[lat - halfSideDeg, lon - halfSideDeg], [lat + halfSideDeg, lon + halfSideDeg]],
+                                { color, weight, fillColor: color, fillOpacity }
+                            ).addTo(map);
 
-                                        const popup = L.popup({
-                                            autoClose: true,
-                                            closeOnClick: true,
-                                            offset: [0, -20],
-                                            className: 'copied-popup'
-                                        })
-                                            .setLatLng([lat + offset, lon])
-                                            .setContent('Copied!')
-                                            .openOn(map);
+                            L.circle([lat, lon], {
+                                radius: circleRadius, color, weight: 1.5, opacity: 0.5, fill: false
+                            }).addTo(map);
 
-                                        setTimeout(() => map.closePopup(popup), 1000);
-                                    });
-                                }
-                            }, 100);
-                        } else {
-                            // 🧩 Popup for older alerts
-                            const popupContent = `
-              ${formattedDate}<br><br>
-              <span style="border:1px solid black;padding:5px">
-                Coordonnées : ${lat.toFixed(6)}, ${lon.toFixed(6)}
-                <button class="copy-btn" style="color:black;"
-                  onclick="navigator.clipboard.writeText('${lat.toFixed(6)},${lon.toFixed(6)}'); window.showCopyMessage();">⎘</button>
-              </span>
-            `;
-                            L.marker([lat, lon], { opacity: 0 })
-                                .addTo(map)
-                                .bindPopup(popupContent);
+                            if (alert === latest || alert === second) {
+                                const latStr = lat.toFixed(6);
+                                const lonStr = lon.toFixed(6);
+                                const labelHtml = `
+              DERNIÈRE ALERTE<br>${formatted}<br>
+              <span style="border:1px white solid;padding:4px;">
+                <span style="font-size:11px; color:white; padding:8px">${latStr}, ${lonStr}</span>
+                <button class="copy-btn">⎘</button>
+              </span>`;
+
+                                const label = L.divIcon({
+                                    className: 'alert-label',
+                                    html: `<div style="
+                font-family: 'Karla-Cedille';
+                background: rgba(255,0,0,0.9);
+                border-radius: 6px;
+                padding: 4px 6px;
+                font-size: 1.1em;
+                color: #fff;
+                text-align: center;
+                box-shadow: 0 0 4px rgba(0,0,0,0.2);
+              ">${labelHtml}</div>`,
+                                    iconSize: [210, 60],
+                                    iconAnchor: [105, 50]
+                                });
+
+                                const offset = alert === latest ? 0.0016 : 0.001;
+                                const marker = L.marker([lat + offset, lon], { icon: label }).addTo(map);
+
+                                marker.on('click', () => {
+                                    navigator.clipboard.writeText(`${latStr},${lonStr}`);
+                                    window.showCopyMessage();
+                                });
+                            } else {
+                                // Non-latest alerts: popup with date and copy button
+                                const latStr = lat.toFixed(6);
+                                const lonStr = lon.toFixed(6);
+                                const popupContent = `
+            Date de l'alerte : <b>${formatted}</b><br><br>
+            <span style="border: 1px black solid; padding: 5px">Coordonnées : ${latStr}, ${lonStr}
+            <button class="copy-btn" style="color:black" onclick="navigator.clipboard.writeText('${latStr},${lonStr}'); window.showCopyMessage();">⎘</button></span>
+        `;
+                                const alertCircle = L.circle([lat, lon], {
+                                    radius: circleRadius,
+                                    color: color,
+                                    weight: 1.5,
+                                    opacity: 0,
+                                    fill: true,
+                                    fillColor: color,
+                                    fillOpacity: 0,
+                                    interactive: true
+                                }).addTo(map);
+
+                                alertCircle.bindPopup(popupContent);
+
+                            }
+                        });
+
+                        if (latest?.geom?.coordinates) {
+                            const [lon, lat] = latest.geom.coordinates;
+                            map.setView([lat, lon], 14);
+                        }
+                    }
+
+                    renderAlerts(allAlerts);
+
+                    // -----------------------------
+                    // 4️⃣ Filter Logic
+                    // -----------------------------
+                    const applyBtn = document.getElementById('apply-filter');
+                    applyBtn.addEventListener('click', () => {
+                        const start = new Date(fpStart.selectedDates[0]);
+                        const end = new Date(fpEnd.selectedDates[0]);
+                        const filtered = allAlerts.filter(a => {
+                            const d = new Date(a.alert_date);
+                            return d >= start && d <= end;
+                        });
+                        renderAlerts(filtered);
+
+                        if (filtered.length > 0) {
+                            const bounds = L.latLngBounds(
+                                filtered.map(a => [a.geom.coordinates[1], a.geom.coordinates[0]])
+                            );
+                            map.fitBounds(bounds, { padding: [50, 50] });
                         }
                     });
 
-                    if (latestVisibleAlert?.geom?.coordinates) {
-                        const [lon, lat] = latestVisibleAlert.geom.coordinates;
-                        map.setView([lat, lon], 14);
-                    }
+                } catch (err) {
+                    console.error('❌ Error initializing map:', err);
                 }
-
-                // Initial render
-                renderAlerts(allAlerts);
-
-                // -----------------------------
-                // 5️⃣ Date Filter Logic
-                // -----------------------------
-                const applyBtn = document.getElementById('apply-filter'); // <-- define it first
-
-                applyBtn.addEventListener('click', () => {
-                    const start = new Date(startInput.value);
-                    const end = new Date(endInput.value);
-                    const filtered = allAlerts.filter(a => {
-                        const d = new Date(a.alert_date);
-                        return d >= start && d <= end;
-                    });
-                    renderAlerts(filtered);
-
-                    // Zoom to bounding box of filtered alerts
-                    if (filtered.length > 0) {
-                        const bounds = L.latLngBounds(
-                            filtered.map(a => [a.geom.coordinates[1], a.geom.coordinates[0]])
-                        );
-                        map.fitBounds(bounds, { padding: [50, 50] }); // padding in pixels
-                    }
-                });
-
-            } catch (err) {
-                console.error('Error initializing map:', err);
-            }
-        };
+            };
+        })();
     </script>
 </body>
 
