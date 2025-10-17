@@ -8,26 +8,42 @@ from shapely.geometry import Point
 import psycopg2
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+import re
 
 # ----------------------
 # Load environment variables
 # ----------------------
 load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL")  # Use pooler URL
-AOI_GEOJSON_PATH = "idjwi.geojson"       # Your AOI
-ALERT_TILE_URL = "https://storage.googleapis.com/earthenginepartners-hansen/GLADalert/C2/current/alert25_020E_10S_030E_00N.tif"
-ALERT_DATE_TILE_URL = ALERT_TILE_URL.replace("alert25", "alertDate25")  # matching date file
+DATABASE_URL = os.getenv("DATABASE_URL")
+AOI_GEOJSON_PATH = "idjwi.geojson"
 
 if not DATABASE_URL:
     raise EnvironmentError("Missing DATABASE_URL environment variable.")
+
+# ----------------------
+# Get the correct GLAD URLs dynamically
+# ----------------------
+def get_glad_urls():
+    base_url = "https://storage.googleapis.com/earthenginepartners-hansen/GLADalert/C2/current"
+    coords = "020E_10S_030E_00N"
+    current_year = datetime.now().year % 100  # e.g., 25, 26
+    for year in [current_year, current_year - 1]:  # try this year, then last year
+        alert_url = f"{base_url}/alert{year:02d}_{coords}.tif"
+        alert_date_url = f"{base_url}/alertDate{year:02d}_{coords}.tif"
+        resp = requests.head(alert_url)
+        if resp.status_code == 200:
+            print(f"✅ Using GLAD dataset year 20{year:02d}")
+            return alert_url, alert_date_url, 2000 + year
+    raise FileNotFoundError("❌ No valid GLAD alert file found for current or previous year.")
+
+ALERT_TILE_URL, ALERT_DATE_TILE_URL, ALERT_YEAR = get_glad_urls()
 
 # ----------------------
 # Load AOI
 # ----------------------
 def load_aoi(aoi_path):
     geom = gpd.read_file(aoi_path).to_crs("EPSG:4326")
-    return geom.unary_union  # single geometry
+    return geom.unary_union
 
 # ----------------------
 # Download raster
@@ -40,7 +56,7 @@ def download_raster(url):
 # ----------------------
 # Convert rasters to centroids within AOI
 # ----------------------
-def rasters_to_centroids(alert_bytes, date_bytes, aoi_geom):
+def rasters_to_centroids(alert_bytes, date_bytes, aoi_geom, alert_year):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".tif") as f_alert, \
          tempfile.NamedTemporaryFile(delete=False, suffix=".tif") as f_date:
 
@@ -58,13 +74,12 @@ def rasters_to_centroids(alert_bytes, date_bytes, aoi_geom):
             for col in range(alert_arr.shape[1]):
                 val = alert_arr[row, col]
 
-                # We include only probable (2) and confirmed (3) losses
-                if val in [2, 3]:
+                if val in [2, 3]:  # probable and confirmed
                     x, y = alert_src.xy(row, col)
                     day_of_year = int(date_arr[row, col])
 
-                    if day_of_year > 0 and day_of_year <= 366:
-                        alert_date = datetime(2025, 1, 1) + timedelta(days=day_of_year - 1)
+                    if 0 < day_of_year <= 366:
+                        alert_date = datetime(alert_year, 1, 1) + timedelta(days=day_of_year - 1)
                         pt = Point(x, y)
 
                         if aoi_geom.contains(pt):
@@ -109,7 +124,7 @@ def main():
     date_bytes = download_raster(ALERT_DATE_TILE_URL)
 
     print("📌 Extracting centroids within AOI...")
-    gdf = rasters_to_centroids(alert_bytes, date_bytes, aoi_geom)
+    gdf = rasters_to_centroids(alert_bytes, date_bytes, aoi_geom, ALERT_YEAR)
 
     if gdf.empty:
         print("⚠️ No alerts found in AOI.")
