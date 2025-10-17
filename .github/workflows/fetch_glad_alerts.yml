@@ -1,9 +1,9 @@
 name: GLAD Alerts Pipeline
 
-# Run every 10 days at 02:00 UTC
+# Run every 7 days at 02:00 UTC
 on:
   schedule:
-    - cron: "0 2 */10 * *"
+    - cron: "0 2 */7 * *"
   workflow_dispatch:  # allows manual trigger
 
 jobs:
