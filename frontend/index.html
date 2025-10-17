@@ -331,6 +331,21 @@
             color: red !important;
         }
 
+        #last-update {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: 'Karla-Cedille', sans-serif;
+            font-size: 0.9rem;
+            color: #213547;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0);
+            z-index: 1000;
+        }
+
         @media (max-width: 480px) {
 
             html,
@@ -370,6 +385,7 @@
 </head>
 
 <body>
+    <div id="last-update"></div>
     <div id="map"></div>
     <div id="copy-message">Coordonnées copiées !</div>
 
@@ -407,22 +423,22 @@
             <div class="descr" style="margin-top: 3rem;">
                 <p><u>Comment ça marche</u></p>
                 <p>
-                    Ce système d'alerte met à jour la carte des alertes tous les 10 jours et, à son ouverture, elle
-                    affiche la localisation de la dernière alerte. Les coordonnées des alertes peuvent être facilement
-                    copiées afin
-                    d'être transmises aux appareils et applications cartographiques qui utilisent le GPS pour donner des
+                    Ce système d'alerte met à jour la carte des alertes tous les 7 jours et, à son ouverture, affiche la
+                    localisation de la dernière alerte. Les coordonnées des alertes peuvent être facilement copiées afin
+                    d'être transmises aux appareils et applications cartographiques utilisant le GPS pour donner des
                     directions.
                 </p>
                 <p>
-                    Les alertes sont obtenues en analysant les données du « GLAD Landsat alert system », à partir du 1er
-                    janvier 2025.<br>Chaque alerte GLAD indique une zone de 30 mètres sur 30 mètres qui a
-                    subi une perturbation dans la canopée forestière, ce qui signifie que les arbres de cette zone ont
-                    peut-être été perdus ou supprimés. Ainsi, chaque alerte correspond à une déforestation potentielle,
-                    <u>mais pas nécessairement due à une action anthropique ou illégale</u>. Les alertes ont pour but de
-                    fournir une indication précoce des endroits où une nouvelle déforestation pourrait avoir lieu, afin
-                    que les forces de l'ordre, les communautés, le leadership coutumier, les organisations militantes et
-                    les autres
-                    acteurs puissent prendre des mesures ciblées.
+                    Les alertes sont obtenues en analysant les données du « GLAD Landsat alert system », à partir du 1er
+                    janvier 2025. Chaque alerte GLAD indique une zone de 30 mètres sur 30 mètres ayant subi une
+                    perturbation dans la canopée forestière, ce qui signifie que les arbres de cette zone ont peut-être
+                    été perdus ou supprimés. Ainsi, chaque alerte correspond à une déforestation potentielle, <u>mais
+                        pas
+                        nécessairement due à une action anthropique et illégale</u>. Les alertes ont pour but de fournir
+                    une
+                    indication précoce des endroits où une nouvelle déforestation pourrait avoir lieu, afin que les
+                    forces de l'ordre, les communautés, le leadership coutumier, les organisations militantes et les
+                    autres acteurs puissent prendre des mesures ciblées.
                 </p>
                 <p style="color: #aaa9a9;">
                     Citation:<br>Hansen, Matthew C., Alexander Krylov, Alexandra Tyukavina, Peter V. Potapov, Svetlana
@@ -433,7 +449,8 @@
             </div>
             <p>
                 Le système d'alerte de déforestation de l'île d'Idjwi est né des réflexions menées par Alessandro
-                Musetta, Emmanuel Ndimwiza et (ajouter des noms).
+                Musetta et Emmanuel Ndimwiza Murhonyi, avec le concours des communautés des régions méridionales de
+                l'île d'Idjwi.
             </p>
             <button class="close-btn" id="close-modal">Fermer</button>
         </div>
@@ -502,7 +519,7 @@
                     // Fetch alerts
                     const { data, error } = await supabaseClient
                         .from('alerts')
-                        .select('geom, alert_value, alert_date');
+                        .select('geom, alert_value, alert_date, created_at');
 
                     if (error) throw error;
                     if (!data || data.length === 0) {
@@ -512,6 +529,20 @@
 
                     let allAlerts = data.filter(a => a.alert_date);
                     allAlerts.sort((a, b) => new Date(a.alert_date) - new Date(b.alert_date));
+
+
+                    // 🕒 Show "Last update" date
+                    const lastCreated = data
+                        .filter(a => a.created_at)
+                        .map(a => new Date(a.created_at))
+                        .sort((a, b) => b - a)[0]; // latest date
+
+                    if (lastCreated) {
+                        const formatted = lastCreated
+                            .toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                            .replaceAll('/', '-');
+                        document.getElementById('last-update').textContent = `DERNIÈRE MISE À JOUR : ${formatted}`;
+                    }
 
                     // Setup date pickers with Flatpickr
                     const startInput = document.getElementById('start-date');
@@ -570,9 +601,9 @@
                         visibleAlerts.forEach(alert => {
                             const [lon, lat] = alert.geom.coordinates;
                             const alertDate = new Date(alert.alert_date);
-                            const formatted = alertDate.toLocaleDateString('fr-FR', {
-                                day: '2-digit', month: '2-digit', year: 'numeric'
-                            });
+                            const formatted = alertDate
+                                .toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                .replaceAll('/', '-');
 
                             let color = 'red', weight = 1, fillOpacity = 0.6;
                             if (alert === latest) { weight = 2; fillOpacity = 0.9; }
