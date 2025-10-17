@@ -209,7 +209,7 @@
             cursor: pointer;
             font-size: 1.1rem;
             margin-left: 4px;
-            color: #fff;
+            color: #213547;
         }
 
         #copy-message {
@@ -386,7 +386,50 @@
 
 <body>
     <div id="last-update"></div>
+
     <div id="map"></div>
+
+    <div id="latest-alert-label" style="
+    position: absolute;
+    top: 55px;
+    right: 20px;
+    background: rgba(255,0,0,0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: 'Karla-Cedille';
+    font-size: 0.9rem;
+    z-index: 1000;
+    box-shadow: 0 2px 6px rgba(0,0,0,0);
+    text-align: center;
+"><span id="latest-alert-text">DERNIÈRE ALERTE(S) :</span>
+        <br><button id="copy-latest" style="
+    background: rgba(255,0,0,0);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: 'Karla-Cedille';
+    cursor: pointer;
+    font-size: 0.8rem;
+  ">Copier les coordonnées ⎘</button>
+    </div>
+
+    <div id="alert-label" style="
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(106,90,205,0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: 'Karla-Cedille';
+    font-size: 0.9rem;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0);
+">TOUTES LES ALERTES DEPUIS LE 01-01-2025</div>
+
     <div id="copy-message">Coordonnées copiées !</div>
 
     <div class="timebar-bar">
@@ -581,105 +624,93 @@
                     // 3️⃣ Rendering Alerts
                     // -----------------------------
                     function renderAlerts(alerts) {
-                        map.eachLayer(layer => {
-                            if (layer instanceof L.Rectangle || layer instanceof L.Circle || layer instanceof L.Marker) {
-                                if (!layer._url) map.removeLayer(layer);
-                            }
-                        });
+                        if (!window.alertLayerGroup) window.alertLayerGroup = L.layerGroup().addTo(map);
+                        window.alertLayerGroup.clearLayers();
 
-                        const visibleAlerts = alerts.filter(a => {
-                            if (!a.geom?.coordinates) return false;
-                            const [lon, lat] = a.geom.coordinates;
-                            return mapBounds.contains([lat, lon]);
-                        }).sort((a, b) => new Date(b.alert_date) - new Date(a.alert_date));
+                        if (!alerts || alerts.length === 0) return;
 
-                        const latest = visibleAlerts[0];
-                        const second = visibleAlerts[1];
-                        const halfSideDeg = 0.000135;
-                        const circleRadius = 120;
+                        // Sort alerts by date
+                        alerts.sort((a, b) => new Date(a.alert_date) - new Date(b.alert_date));
 
-                        visibleAlerts.forEach(alert => {
+                        const dates = alerts.map(a => new Date(a.alert_date).toISOString().split('T')[0]);
+                        const latestDate = dates[dates.length - 1];
+                        const oldestDate = dates[0];
+
+                        const halfSideDeg = 0.000135; // ~30 m
+                        const circleRadius = 50;
+
+                        alerts.forEach(alert => {
+                            if (!alert.geom?.coordinates) return;
+
                             const [lon, lat] = alert.geom.coordinates;
                             const alertDate = new Date(alert.alert_date);
-                            const formatted = alertDate
-                                .toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                                .replaceAll('/', '-');
+                            const dateStr = alertDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
 
-                            let color = 'red', weight = 1, fillOpacity = 0.6;
-                            if (alert === latest) { weight = 2; fillOpacity = 0.9; }
-                            else if (alert === second) { weight = 2; fillOpacity = 0.8; }
+                            // Determine circle color
+                            let color = 'SlateBlue';
+                            if (alertDate.toISOString().split('T')[0] === latestDate) color = 'red';
+                            if (alertDate.toISOString().split('T')[0] === oldestDate) color = 'SlateBlue';
 
-                            L.rectangle([[lat - halfSideDeg, lon - halfSideDeg], [lat + halfSideDeg, lon + halfSideDeg]],
-                                { color, weight, fillColor: color, fillOpacity }
-                            ).addTo(map);
+                            // Draw the 30m × 30m square (rectangle)
+                            L.rectangle([[lat - halfSideDeg, lon - halfSideDeg], [lat + halfSideDeg, lon + halfSideDeg]], {
+                                color: color,
+                                weight: 1,
+                                fillColor: color,
+                                fillOpacity: 0.6
+                            }).addTo(window.alertLayerGroup);
 
-                            L.circle([lat, lon], {
-                                radius: circleRadius, color, weight: 1.5, opacity: 0.5, fill: false
-                            }).addTo(map);
+                            // Draw the external circle
+                            const circle = L.circle([lat, lon], {
+                                radius: circleRadius,
+                                color: color,
+                                weight: 2,
+                                fill: true,
+                                fillColor: color,
+                                fillOpacity: 0,
+                                opacity: 0.7
+                            }).addTo(window.alertLayerGroup);
 
-                            if (alert === latest || alert === second) {
-                                const latStr = lat.toFixed(6);
-                                const lonStr = lon.toFixed(6);
-                                const labelHtml = `
-              DERNIÈRE ALERTE<br>${formatted}<br>
-              <span style="border:1px white solid;padding:4px;">
-                <span style="font-size:11px; color:white; padding:8px">${latStr}, ${lonStr}</span>
-                <button class="copy-btn">⎘</button>
-              </span>`;
-
-                                const label = L.divIcon({
-                                    className: 'alert-label',
-                                    html: `<div style="
-                font-family: 'Karla-Cedille';
-                background: rgba(255,0,0,0.9);
-                border-radius: 6px;
-                padding: 4px 6px;
-                font-size: 1.1em;
-                color: #fff;
-                text-align: center;
-                box-shadow: 0 0 4px rgba(0,0,0,0.2);
-              ">${labelHtml}</div>`,
-                                    iconSize: [210, 60],
-                                    iconAnchor: [105, 50]
-                                });
-
-                                const offset = alert === latest ? 0.0016 : 0.001;
-                                const marker = L.marker([lat + offset, lon], { icon: label }).addTo(map);
-
-                                marker.on('click', () => {
-                                    navigator.clipboard.writeText(`${latStr},${lonStr}`);
-                                    window.showCopyMessage();
-                                });
-                            } else {
-                                // Non-latest alerts: popup with date and copy button
-                                const latStr = lat.toFixed(6);
-                                const lonStr = lon.toFixed(6);
-                                const popupContent = `
-            Date de l'alerte : <b>${formatted}</b><br><br>
-            <span style="border: 1px black solid; padding: 5px">Coordonnées : ${latStr}, ${lonStr}
-            <button class="copy-btn" style="color:black" onclick="navigator.clipboard.writeText('${latStr},${lonStr}'); window.showCopyMessage();">⎘</button></span>
+                            // Popup with coordinates & copy button
+                            const popupContent = `
+            Date de l'alerte : <b>${dateStr}</b><br><br>
+            <span style="border: 1px solid black; padding: 5px;">
+                Coordonnées : ${lat.toFixed(6)}, ${lon.toFixed(6)}
+                <button class="copy-btn" onclick="navigator.clipboard.writeText('${lat.toFixed(6)},${lon.toFixed(6)}'); window.showCopyMessage();">⎘</button>
+            </span>
         `;
-                                const alertCircle = L.circle([lat, lon], {
-                                    radius: circleRadius,
-                                    color: color,
-                                    weight: 1.5,
-                                    opacity: 0,
-                                    fill: true,
-                                    fillColor: color,
-                                    fillOpacity: 0,
-                                    interactive: true
-                                }).addTo(map);
-
-                                alertCircle.bindPopup(popupContent);
-
-                            }
+                            circle.bindPopup(popupContent);
                         });
 
-                        if (latest?.geom?.coordinates) {
-                            const [lon, lat] = latest.geom.coordinates;
-                            map.setView([lat, lon], 14);
+                        // Zoom to latest alerts
+                        const latestAlerts = alerts.filter(a => new Date(a.alert_date).toISOString().split('T')[0] === latestDate);
+                        if (latestAlerts.length > 0) {
+                            const bounds = L.latLngBounds(latestAlerts.map(a => [a.geom.coordinates[1], a.geom.coordinates[0]]));
+                            map.fitBounds(bounds, { padding: [60, 60] });
                         }
+
+                        // Update bottom-right label
+                        const latestLabel = document.getElementById('latest-alert-label');
+                        const latestAlertDate = new Date(latestAlerts[0].alert_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+
+                        // Update the label text only (keep the button)
+                        document.getElementById('latest-alert-text').textContent = `DERNIÈRE ALERTE(S): ${latestAlertDate}`;
+
+                        // Add "Copy all latest coordinates" functionality
+                        const copyBtn = document.getElementById('copy-latest');
+                        copyBtn.onclick = async () => {
+                            if (!latestAlerts || latestAlerts.length === 0) return;
+
+                            const coordsList = latestAlerts.map(a => {
+                                const [lon, lat] = a.geom.coordinates;
+                                const dateStr = new Date(a.alert_date).toLocaleDateString('fr-FR').replace(/\//g, '-');
+                                return `${lat.toFixed(6)},${lon.toFixed(6)}`;
+                            }).join('\n');
+
+                            await navigator.clipboard.writeText(coordsList);
+                            window.showCopyMessage(); // reuse your existing “Coordonnées copiées !” popup
+                        };
                     }
+
 
                     renderAlerts(allAlerts);
 
