@@ -3,9 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>GLAD Alerts – Idjwi</title>
+    <title>Système d'alerte de déforestation de l'île d'Idjwii</title>
+    <meta property="og:description"
+        content="L'île d'Idjwi est considérée comme l'île de la paix entre les lignes ennemies. Suite aux premières inquiétudes exprimées par les communautés vivant sur l'île concernant une récente exploitation déséquilibrée des ressources naturelles et forestières, nous avons mis en place ce système d'alerte destiné aux habitants, afin qu'ils puissent surveiller l'île et veiller à ce qu'elle reste le site naturel sacré et sécurisé qui a fait sa renommée" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta property="og:image" content="assets/deforestation.jpg">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="icon" type="image/svg+xml" href="vite.svg">
 
     <style>
         @font-face {
@@ -623,8 +628,10 @@
                     // -----------------------------
                     // 3️⃣ Rendering Alerts
                     // -----------------------------
-                    function renderAlerts(alerts) {
-                        if (!window.alertLayerGroup) window.alertLayerGroup = L.layerGroup().addTo(map);
+                    function renderAlerts(alerts, { zoomToLatest = true } = {}) {
+                        if (!window.alertLayerGroup) {
+                            window.alertLayerGroup = L.layerGroup().addTo(map);
+                        }
                         window.alertLayerGroup.clearLayers();
 
                         if (!alerts || alerts.length === 0) return;
@@ -644,25 +651,29 @@
 
                             const [lon, lat] = alert.geom.coordinates;
                             const alertDate = new Date(alert.alert_date);
-                            const dateStr = alertDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+                            const dateStr = alertDate.toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                            }).replace(/\//g, '-');
 
-                            // Determine circle color
+                            // Determine color
                             let color = 'SlateBlue';
                             if (alertDate.toISOString().split('T')[0] === latestDate) color = 'red';
-                            if (alertDate.toISOString().split('T')[0] === oldestDate) color = 'SlateBlue';
 
-                            // Draw the 30m × 30m square (rectangle)
-                            L.rectangle([[lat - halfSideDeg, lon - halfSideDeg], [lat + halfSideDeg, lon + halfSideDeg]], {
-                                color: color,
+                            // 30m x 30m rectangle
+                            L.rectangle([[lat - halfSideDeg, lon - halfSideDeg],
+                            [lat + halfSideDeg, lon + halfSideDeg]], {
+                                color,
                                 weight: 1,
                                 fillColor: color,
                                 fillOpacity: 0.6
                             }).addTo(window.alertLayerGroup);
 
-                            // Draw the external circle
+                            // Circle outline
                             const circle = L.circle([lat, lon], {
                                 radius: circleRadius,
-                                color: color,
+                                color,
                                 weight: 2,
                                 fill: true,
                                 fillColor: color,
@@ -670,45 +681,54 @@
                                 opacity: 0.7
                             }).addTo(window.alertLayerGroup);
 
-                            // Popup with coordinates & copy button
+                            // Popup
                             const popupContent = `
-            Date de l'alerte : <b>${dateStr}</b><br><br>
-            <span style="border: 1px solid black; padding: 5px;">
-                Coordonnées : ${lat.toFixed(6)}, ${lon.toFixed(6)}
-                <button class="copy-btn" onclick="navigator.clipboard.writeText('${lat.toFixed(6)},${lon.toFixed(6)}'); window.showCopyMessage();">⎘</button>
-            </span>
-        `;
+      Date de l'alerte : <b>${dateStr}</b><br><br>
+      <span style="border: 1px solid black; padding: 5px;">
+        Coordonnées : ${lat.toFixed(6)}, ${lon.toFixed(6)}
+        <button class="copy-btn"
+          onclick="navigator.clipboard.writeText('${lat.toFixed(6)},${lon.toFixed(6)}'); window.showCopyMessage();">⎘</button>
+      </span>
+    `;
                             circle.bindPopup(popupContent);
                         });
 
-                        // Zoom to latest alerts
-                        const latestAlerts = alerts.filter(a => new Date(a.alert_date).toISOString().split('T')[0] === latestDate);
-                        if (latestAlerts.length > 0) {
-                            const bounds = L.latLngBounds(latestAlerts.map(a => [a.geom.coordinates[1], a.geom.coordinates[0]]));
-                            map.fitBounds(bounds, { padding: [60, 60] });
+                        // 🔍 Zoom logic
+                        if (zoomToLatest) {
+                            const latestAlerts = alerts.filter(
+                                a => new Date(a.alert_date).toISOString().split('T')[0] === latestDate
+                            );
+                            if (latestAlerts.length > 0) {
+                                const bounds = L.latLngBounds(
+                                    latestAlerts.map(a => [a.geom.coordinates[1], a.geom.coordinates[0]])
+                                );
+                                map.fitBounds(bounds, { padding: [60, 60] });
+                            }
                         }
 
-                        // Update bottom-right label
-                        const latestLabel = document.getElementById('latest-alert-label');
-                        const latestAlertDate = new Date(latestAlerts[0].alert_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+                        // 🏷️ Update "latest alert" label
+                        const latestAlerts = alerts.filter(
+                            a => new Date(a.alert_date).toISOString().split('T')[0] === latestDate
+                        );
+                        if (latestAlerts.length > 0) {
+                            const latestAlertDate = new Date(latestAlerts[0].alert_date)
+                                .toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                .replace(/\//g, '-');
 
-                        // Update the label text only (keep the button)
-                        document.getElementById('latest-alert-text').textContent = `DERNIÈRE ALERTE(S): ${latestAlertDate}`;
+                            document.getElementById('latest-alert-text').textContent =
+                                `DERNIÈRE ALERTE(S): ${latestAlertDate}`;
 
-                        // Add "Copy all latest coordinates" functionality
-                        const copyBtn = document.getElementById('copy-latest');
-                        copyBtn.onclick = async () => {
-                            if (!latestAlerts || latestAlerts.length === 0) return;
-
-                            const coordsList = latestAlerts.map(a => {
-                                const [lon, lat] = a.geom.coordinates;
-                                const dateStr = new Date(a.alert_date).toLocaleDateString('fr-FR').replace(/\//g, '-');
-                                return `${lat.toFixed(6)},${lon.toFixed(6)}`;
-                            }).join('\n');
-
-                            await navigator.clipboard.writeText(coordsList);
-                            window.showCopyMessage(); // reuse your existing “Coordonnées copiées !” popup
-                        };
+                            // Copy button for latest alerts
+                            const copyBtn = document.getElementById('copy-latest');
+                            copyBtn.onclick = async () => {
+                                const coordsList = latestAlerts.map(a => {
+                                    const [lon, lat] = a.geom.coordinates;
+                                    return `${lat.toFixed(6)},${lon.toFixed(6)}`;
+                                }).join('\n');
+                                await navigator.clipboard.writeText(coordsList);
+                                window.showCopyMessage();
+                            };
+                        }
                     }
 
 
@@ -719,13 +739,18 @@
                     // -----------------------------
                     const applyBtn = document.getElementById('apply-filter');
                     applyBtn.addEventListener('click', () => {
+                        // get start/end as local midnight
                         const start = new Date(fpStart.selectedDates[0]);
+                        start.setHours(0, 0, 0, 0);
                         const end = new Date(fpEnd.selectedDates[0]);
+                        end.setHours(23, 59, 59, 999); // include the full last day
+
                         const filtered = allAlerts.filter(a => {
                             const d = new Date(a.alert_date);
                             return d >= start && d <= end;
                         });
-                        renderAlerts(filtered);
+
+                        renderAlerts(filtered, { zoomToLatest: false });
 
                         if (filtered.length > 0) {
                             const bounds = L.latLngBounds(
