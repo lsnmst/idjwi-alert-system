@@ -36,6 +36,12 @@
             background: #555;
         }
 
+        input,
+        textarea,
+        select {
+            font-family: 'Karla-Cedille', sans-serif;
+        }
+
         body {
             margin: 0;
             padding: 0;
@@ -385,6 +391,10 @@
                 margin: 0;
                 white-space: normal;
             }
+
+            #add-note-floating {
+                bottom: 20rem !important;
+            }
         }
     </style>
 </head>
@@ -434,6 +444,36 @@
     pointer-events: none;
     box-shadow: 0 2px 6px rgba(0,0,0,0);
 ">TOUTES LES ALERTES DEPUIS LE 01-01-2025</div>
+
+    <button id="add-note-floating"
+        style="position:absolute;left:20px;bottom:8rem;z-index:1000;padding:8px 12px;border-radius:6px;border:1px solid #21354700;background:#FFD700;cursor:pointer;font-family: 'Karla-Cedille'!important">
+        + Ajouter une note
+    </button>
+
+    <!-- Note Modal -->
+    <div id="note-modal" style=" font-family: 'Karla-Cedille'!important" class="modal">
+        <div class="modal-content">
+            <h2>Ajouter une note</h2>
+            <form id="note-form">
+                <input type="text" id="note-title" placeholder="Titre (ex: Nouvelle mine à ciel ouvert)" required
+                    style="width:100%;padding:8px;margin-bottom:8px;">
+                <textarea id="note-description" placeholder="Description ou observation" rows="4"
+                    style="width:100%;padding:8px;margin-bottom:8px;"></textarea>
+                <select id="note-category" style="width:100%;padding:8px;margin-bottom:8px;">
+                    <option value="mine">Mines (à ciel ouvert)</option>
+                    <option value="charcoal">Production de charbon</option>
+                    <option value="agriculture">Expansion agricole</option>
+                    <option value="settlement">Construction / logement</option>
+                    <option value="other">Autre</option>
+                </select>
+                <div style="display:flex;gap:8px;justify-content:center;">
+                    <button type="submit" class="close-btn">Enregistrer</button>
+                    <button type="button" id="note-cancel" class="close-btn" style="background:#777;">Annuler</button>
+                </div>
+                <p style="font-size:0.9rem;color:#666;margin-top:8px;"></p>
+            </form>
+        </div>
+    </div>
 
     <div id="copy-message">Coordonnées copiées !</div>
 
@@ -603,29 +643,30 @@
             // -----------------------------
             window.onload = async function () {
                 try {
-                    // Supabase setup
-                    const supabaseUrl = 'https://sgjcevsavckwsjplzned.supabase.co';
-                    const supabaseKey =
-                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnamNldnNhdmNrd3NqcGx6bmVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMjMyOTgsImV4cCI6MjA3NTc5OTI5OH0.eeUvKqddDTk7G1MBzQPhoNB15NIpFIrvKk90PAOYbQQ';
-                    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                    // Supabase setup (global)
+                    window.supabaseClient = supabase.createClient(
+                        'https://sgjcevsavckwsjplzned.supabase.co',
+                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnamNldnNhdmNrd3NqcGx6bmVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMjMyOTgsImV4cCI6MjA3NTc5OTI5OH0.eeUvKqddDTk7G1MBzQPhoNB15NIpFIrvKk90PAOYbQQ'
+                    );
 
-                    // Map setup
+                    // Map setup (global)
                     const mapBounds = L.latLngBounds([-2.3293, 28.9075], [-1.8339, 29.207]);
-                    const map = L.map('map', {
+                    window.map = L.map('map', {
                         minZoom: 10,
                         maxZoom: 16,
                         maxBounds: mapBounds
                     }).setView([-2.1, 29.05], 11);
 
+                    // Tile layers...
                     L.tileLayer(
                         "https://www.alessandromusetta.com/geo/tiles/minimapidjwi/{z}/{x}/{y}.png",
                         { minZoom: 8, maxZoom: 12, noWrap: true, attribution: "" }
-                    ).addTo(map);
+                    ).addTo(window.map);
 
                     L.tileLayer(
                         "https://www.alessandromusetta.com/geo/tiles/idjwi/{z}/{x}/{y}.jpg",
                         { minZoom: 13, maxZoom: 16, noWrap: true, attribution: "" }
-                    ).addTo(map);
+                    ).addTo(window.map);
 
                     // Fetch alerts
                     const { data, error } = await supabaseClient
@@ -829,6 +870,8 @@
             };
         })();
     </script>
+
+    <script src="community-notes.js"></script>
 </body>
 
 </html>
