@@ -1,0 +1,115 @@
+
+// -------------------------------------------
+// Guide d’utilisation du système d’alerte de déforestation de l’île d’Idjwi 
+// -------------------------------------------
+
+Le Système d’alerte de déforestation de l’île d’Idjwi permet aux habitants, chercheurs, et autorités politiques, militaires  et coutumières, de surveiller les zones où la couverture forestière diminue.
+
+Les alertes sont basées sur les données du GLAD Landsat Alert System (Université du Maryland), qui détecte chaque semaine les zones où la canopée forestière a subi une perturbation. Chaque alerte correspond à une zone de 30 m x 30 m où une perte d’arbres a été observée. ⚠️ Cela ne signifie pas nécessairement une déforestation illégale — l’objectif est d’offrir un signal précoce pour permettre aux communautés et autorités d’enquêter sur le terrain.
+
+Le système d'alerte est accessible sur le site web https://lsnmst.github.io/idjwi-alert-system/frontend/
+
+
+
+// -------------------------------------------
+//  L'interface principale 
+// -------------------------------------------
+
+Lorsque vous ouvrez la page, vous verrez :
+
+Une carte interactive centrée sur l’île d’Idjwi et sur les dernières alertes détectées;
+Des cercles colorées représentant les alertes de déforestation :
+	🔴 Rouge : dernières alertes enregistrées,
+	🟣 Violet : anciennes alertes depuis le 1er janvier 2025;
+Un panneau de filtre temporel (en bas de la carte);
+Un bouton pour ajouter une note de la communauté (en bas à gauche).
+
+
+
+// -------------------------------------------
+//  Utiliser la carte 
+// -------------------------------------------
+
+Déplacez la carte en cliquant et glissant.
+Zoomez ou dézoomez avec la molette ou les boutons + / –.
+Cliquez sur une alerte (cercle rouge ou violet) pour afficher :
+	La date de l’alerte
+	Les coordonnées GPS
+	Un bouton ⎘ Copier les coordonnées pour les enregistrer
+
+Les coordonnées copiées peuvent être utilisées dans des applications comme Google Maps, OsmAnd, ou QField.
+
+
+
+// -------------------------------------------
+//  Filtrer les alertes par date  
+// -------------------------------------------
+
+Sous la carte, utilisez les champs :
+	De : sélectionnez la date de début
+	À : sélectionnez la date de fin
+Cliquez sur Filtrer
+
+La carte s’actualisera pour ne montrer que les alertes comprises dans cette période.
+Vous pouvez ainsi visualiser l’évolution de la déforestation sur un intervalle précis.
+
+
+
+// -------------------------------------------
+//  Consulter les dernières alertes 
+// -------------------------------------------
+
+En haut à droite de la carte, un encadré rouge indique :
+
+	DERNIÈRE ALERTE(S) : [date la plus récente]
+
+Le bouton “Copier les coordonnées ⎘” vous permet de récupérer toutes les coordonnées des alertes les plus récentes pour vos rapports ou enquêtes de terrain.
+
+
+
+// -------------------------------------------
+//  Ajouter une note communautaire 
+// -------------------------------------------
+
+Le système permet aux utilisateurs locaux de participer activement à la surveillance environnementale en ajoutant leurs propres observations. Cette fonctionnalité renforce la vigilance communautaire et facilite le partage d’informations entre habitants, chercheurs et autorités.
+
+
+Comment ajouter une note
+
+(A) Cliquez sur le bouton “+ Ajouter une note”
+Ce bouton se trouve dans le coin inférieur gauche de la carte. Une fenêtre s’ouvre pour saisir votre observation.
+
+(B) Remplissez les champs du formulaire :
+Titre. Donnez un titre court et descriptif, par exemple : “Nouvelle coupe de bois près de Bugarula” ou “Extension de champ agricole”.
+Description. Décrivez plus en détail ce que vous avez observé : la date, le lieu exact, les acteurs impliqués (si connus), et toute information pertinente (ex. taille de la zone, type d’activité, impacts visibles).	
+Catégorie. Sélectionnez le type d’activité correspondant à votre observation : (1) Mines, (2) Production de charbon, (3) Expansion agricole, (4) Construction / logement, (5) Autre
+
+(C) Cliquez sur “Enregistrer” pour sauvegarder la note.
+Ces contributions renforcent la surveillance communautaire. Chaque note contribue à créer une mémoire collective des changements observés sur l’île.
+
+
+
+// -------------------------------------------
+//  Mise à jour des données  
+// -------------------------------------------
+
+Les alertes sont mises à jour automatiquement tous les 7 jours.
+La date de la dernière mise à jour apparaît en haut à droite sous la forme :
+
+DERNIÈRE MISE À JOUR : JJ-MM-AAAA
+
+
+
+// -------------------------------------------
+//  Auteurs et remerciements 
+// -------------------------------------------
+
+Le système d'alerte à la déforestation de l'île d'Idjwi encourage la collaboration entre les chercheurs, les développeurs et les communautés locales engagées dans la conservation des forêts de l'île. 
+
+Conception et développement
+(A) Alessandro Musetta
+Chercheur indépendant et développeur de solutions géospatiales. Responsable de la conception du système, du développement web, et de l’intégration des données spatiales. Spécialiste en cartographie participative et analyse environnementale.
+(B) Emmanuel Ndimwiza Murhonyi
+Chercheur congolais en sciences de l’environnement et gestion des ressources naturelles. Originaire de l’île d’Idjwi, il apporte une expertise précieuse sur le contexte local, les dynamiques communautaires et les enjeux socio-écologiques. Responsable de la validation communautaire et de la communication locale.
+
+Les auteurs adressent leurs sincères remerciements à tous ceux qui participent, par leurs observations et leur vigilance, à la protection du patrimoine forestier de l’île.

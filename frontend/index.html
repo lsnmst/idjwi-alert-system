@@ -357,6 +357,11 @@
             z-index: 1000;
         }
 
+        #open-guide {
+            background: #44444400;
+            border: none;
+        }
+
         @media (max-width: 480px) {
 
             html,
@@ -382,7 +387,7 @@
                 width: 100%;
                 box-sizing: border-box;
                 height: auto;
-                margin-bottom: 100px !important;
+                margin-bottom: 80px !important;
             }
 
             #footer h1 {
@@ -430,6 +435,13 @@
   ">Copier les coordonnées ⎘</button>
     </div>
 
+    <div style="position: absolute; top: 120px; right: 20px; z-index: 9999;">
+        <button id="open-guide" title="Guide"
+            style="font-size: 20px; cursor: pointer;font-family: 'Karla-Cedille'; font-size: 1rem;">
+            Guide 📖
+        </button>
+    </div>
+
     <div id="alert-label" style="
     position: absolute;
     top: 20px;
@@ -444,6 +456,7 @@
     pointer-events: none;
     box-shadow: 0 2px 6px rgba(0,0,0,0);
 ">TOUTES LES ALERTES DEPUIS LE 01-01-2025</div>
+
 
     <button id="add-note-floating"
         style="position:absolute;left:20px;bottom:8rem;z-index:1000;padding:8px 12px;border-radius:6px;border:1px solid #21354700;background:#FFD700;cursor:pointer;font-family: 'Karla-Cedille'!important">
@@ -869,6 +882,30 @@
                 }
             };
         })();
+
+        const guideBtn = document.getElementById('open-guide');
+        guideBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('Guide_utilisation_du_systeme_alerte_deforestation_idjwi.txt');
+                const text = await response.text();
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.style.display = 'flex';
+                modal.innerHTML = `
+<div class="modal-content" style="max-height:80%; overflow:auto; text-align:left; font-family:'Karla-Cedille', sans-serif;">
+    <pre style="white-space: pre-wrap; word-wrap: break-word; margin:0; padding:0; font-family:'Karla-Cedille'">${text}</pre>
+    <div style="text-align:center; margin-top:20px;">
+        <button class="close-btn">Fermer</button>
+    </div>
+</div>
+`;
+                document.body.appendChild(modal);
+                modal.querySelector('.close-btn').onclick = () => modal.remove();
+                modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+            } catch (err) {
+                console.error('Could not load guide:', err);
+            }
+        });
     </script>
 
     <script src="community-notes.js"></script>

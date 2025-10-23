@@ -19,13 +19,18 @@ window.addEventListener('load', () => {
 
     const notesLayer = L.layerGroup().addTo(map);
 
+    map.off('movestart', map.closePopup);
+
     const openModal = () => modal.style.display = 'flex';
     const closeModal = () => {
         modal.style.display = 'none';
         if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
         addingMode = false;
-        addBtn.style.background = '#fff';
+        addBtn.style.background = '#FFD700';
+        addBtn.style.color = 'black';
         addBtn.textContent = '+ Ajouter une note';
+
+        map.getContainer().style.cursor = '';
     };
 
     cancelBtn.addEventListener('click', closeModal);
@@ -34,47 +39,50 @@ window.addEventListener('load', () => {
     addBtn.addEventListener('click', () => {
         addingMode = !addingMode;
         addBtn.style.background = addingMode ? 'red' : '#fff';
-        addBtn.textContent = addingMode ? 'Cliquez sur la carte...' : '+ Ajouter une note';
+        addBtn.style.color = addingMode ? 'white' : 'black';
+        addBtn.textContent = addingMode ? 'Cliquez sur la carte à l\'endroit où la note sera afficher...' : '+ Ajouter une note';
 
         map.getContainer().style.cursor = addingMode ? 'crosshair' : '';
     });
 
     map.on('click', (e) => {
         if (!addingMode) return;
+
         noteLatLng = e.latlng;
+
         if (tempMarker) map.removeLayer(tempMarker);
-        // 🟪 Replace pin with a small square
-        const halfSideDeg = 0.000135; // ~30 m, same as your alert tiles
-        const color = '#ff6600'; // color for new note placement (you can change)
 
-        const bounds = [
-            [noteLatLng.lat - halfSideDeg, noteLatLng.lng - halfSideDeg],
-            [noteLatLng.lat + halfSideDeg, noteLatLng.lng + halfSideDeg]
-        ];
-
-        tempMarker = L.rectangle(bounds, {
-            color,
-            weight: 2,
-            fillColor: color,
-            fillOpacity: 0.6,
-            interactive: true
-        }).addTo(map);
-
-        // Allow repositioning: click again somewhere else
-        map.once('click', (ev) => {
-            map.removeLayer(tempMarker);
-            noteLatLng = ev.latlng;
-            const newBounds = [
-                [noteLatLng.lat - halfSideDeg, noteLatLng.lng - halfSideDeg],
-                [noteLatLng.lat + halfSideDeg, noteLatLng.lng + halfSideDeg]
-            ];
-            tempMarker = L.rectangle(bounds, {
-                color: '#FFD700',
-                weight: 2,
-                fillColor: '#FFD700',
-                fillOpacity: 0.6
-            }).addTo(map);
+        const tempIcon = L.divIcon({
+            className: '',
+            html: `<div style="
+            width: 24px;
+            height: 24px;
+            background: #FFD700;
+            border: 2px solid #000;
+            box-sizing: border-box;
+            cursor: grab;
+        "></div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
         });
+
+        tempMarker = L.marker(noteLatLng, { icon: tempIcon, draggable: true }).addTo(map);
+
+        // Add tooltip to guide the user
+        tempMarker.bindTooltip("Déplacez-moi pour ajuster la position", { permanent: true, offset: [0, -20] }).openTooltip();
+
+        // Update noteLatLng while dragging
+        tempMarker.on('drag', (event) => {
+            noteLatLng = event.target.getLatLng();
+        });
+
+        tempMarker.on('dragstart', () => {
+            tempMarker.getElement().style.background = '#ff6600';
+        });
+        tempMarker.on('dragend', () => {
+            tempMarker.getElement().style.background = '#FFD700';
+        });
+
         openModal();
     });
 
@@ -132,7 +140,6 @@ window.addEventListener('load', () => {
 
                 if (map.getZoom() <= zoomThreshold) return;
 
-                // Use category icon or default
                 const icon = iconMap[n.category] || '📝';
 
                 const popupHtml = `
@@ -155,9 +162,29 @@ ${n.validated ? '' : '<br><i style="color:#a00;">En attente de validation</i>'}
                     iconAnchor: [12, 12] // center on the location
                 });
 
-                L.marker([lat, lon], { icon: svgIcon })
-                    .bindPopup(popupHtml)
-                    .addTo(notesLayer);
+                const marker = L.marker([lat, lon], { icon: svgIcon }).addTo(notesLayer);
+
+                const popup = L.popup({
+                    autoClose: false,
+                    closeOnClick: false
+                }).setContent(popupHtml);
+
+                marker.bindPopup(popup);
+
+                marker.on('click', () => {
+                    marker.openPopup();
+                });
+
+                // Optional: Keep popup open on move/zoom
+                map.on('movestart zoomstart', () => {
+                    if (marker.isPopupOpen()) marker._keepPopupOpen = true;
+                });
+                map.on('moveend zoomend', () => {
+                    if (marker._keepPopupOpen) {
+                        marker.openPopup();
+                        marker._keepPopupOpen = false;
+                    }
+                });
             });
 
     }
