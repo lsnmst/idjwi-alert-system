@@ -4,33 +4,42 @@ name: GLAD Alerts Pipeline
 on:
   schedule:
     - cron: "0 2 */7 * *"
-  workflow_dispatch:  # allows manual trigger
+  workflow_dispatch: # allows manual trigger
 
 jobs:
   run-glad-pipeline:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout the repo
+      # 1️ Checkout the repo
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Set up Python
+      # 2️ Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
 
-      # 3️⃣ Install dependencies
+      # 3️ Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 4️⃣ Run GLAD pipeline
+      # 4️ Run GLAD pipeline
       - name: Run GLAD pipeline
         run: python gfw_alerts_pipeline.py
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           # If you need to store the AOI as a secret:
           # AOI_GEOJSON_PATH: ${{ secrets.AOI_GEOJSON_PATH }}
+
+      # 5 Send whatsapp
+      - name: Send WhatsApp recap
+        run: python send_whatsapp_alerts.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
+          PHONE_NUMBER_ID: ${{ secrets.PHONE_NUMBER_ID }}
