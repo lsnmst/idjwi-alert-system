@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 from supabase import create_client
 from datetime import date, timedelta
@@ -44,12 +45,20 @@ else:
 # ---------- SEND WHATSAPP ----------
 headers = {"Authorization": f"Bearer {ACCESS_TOKEN}", "Content-Type": "application/json"}
 
+def normalize_number(number: str) -> str:
+    """Ensure phone number is in +<countrycode><number> format, no spaces or dashes."""
+    number = re.sub(r"[^\d+]", "", number)  # remove spaces, dashes
+    if not number.startswith("+"):
+        number = "+" + number
+    return number
+
 for sub in subscribers:
+    phone = normalize_number(sub['phone_number'])
     payload = {
         "messaging_product": "whatsapp",
-        "to": sub['phone_number'],
+        "to": phone,
         "type": "text",
         "text": {"body": message_text}
     }
     response = requests.post(META_API_URL, json=payload, headers=headers)
-    print(f"Sent to {sub['phone_number']} - Status: {response.status_code}")
+    print(f"Sent to {phone} - Status: {response.status_code}, Response: {response.text}")
