@@ -5,10 +5,10 @@ import requests
 import rasterio
 import geopandas as gpd
 from shapely.geometry import Point
+from shapely.prepared import prep
 import psycopg2
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
-import re
 
 # ----------------------
 # Load environment variables
@@ -26,12 +26,11 @@ if not DATABASE_URL:
 def get_glad_urls():
     base_url = "https://storage.googleapis.com/earthenginepartners-hansen/GLADalert/C2/current"
     coords = "020E_10S_030E_00N"
-    current_year = datetime.now().year % 100  # e.g., 25, 26
-    for year in [current_year, current_year - 1]:  # try this year, then last year
+    current_year = datetime.utcnow().year % 100  # e.g., 26
+    for year in [current_year, current_year - 1]:
         alert_url = f"{base_url}/alert{year:02d}_{coords}.tif"
         alert_date_url = f"{base_url}/alertDate{year:02d}_{coords}.tif"
-        resp = requests.head(alert_url)
-        if resp.status_code == 200:
+        if requests.head(alert_url).status_code == 200:
             print(f"✅ Using GLAD dataset year 20{year:02d}")
             return alert_url, alert_date_url, 2000 + year
     raise FileNotFoundError("❌ No valid GLAD alert file found for current or previous year.")
@@ -42,14 +41,14 @@ ALERT_TILE_URL, ALERT_DATE_TILE_URL, ALERT_YEAR = get_glad_urls()
 # Load AOI
 # ----------------------
 def load_aoi(aoi_path):
-    geom = gpd.read_file(aoi_path).to_crs("EPSG:4326")
-    return geom.unary_union
+    gdf = gpd.read_file(aoi_path).to_crs("EPSG:4326")
+    return gdf.union_all()
 
 # ----------------------
 # Download raster
 # ----------------------
 def download_raster(url):
-    resp = requests.get(url)
+    resp = requests.get(url, timeout=60)
     resp.raise_for_status()
     return resp.content
 
@@ -57,6 +56,8 @@ def download_raster(url):
 # Convert rasters to centroids within AOI
 # ----------------------
 def rasters_to_centroids(alert_bytes, date_bytes, aoi_geom, alert_year):
+    prepared_aoi = prep(aoi_geom)
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".tif") as f_alert, \
          tempfile.NamedTemporaryFile(delete=False, suffix=".tif") as f_date:
 
@@ -66,31 +67,54 @@ def rasters_to_centroids(alert_bytes, date_bytes, aoi_geom, alert_year):
         date_path = f_date.name
 
     centroids = []
-    with rasterio.open(alert_path) as alert_src, rasterio.open(date_path) as date_src:
-        alert_arr = alert_src.read(1)
-        date_arr = date_src.read(1)
 
-        for row in range(alert_arr.shape[0]):
-            for col in range(alert_arr.shape[1]):
-                val = alert_arr[row, col]
+    try:
+        with rasterio.open(alert_path) as alert_src, rasterio.open(date_path) as date_src:
+            alert_arr = alert_src.read(1)
+            date_arr = date_src.read(1)
 
-                if val in [2, 3]:  # probable and confirmed
-                    x, y = alert_src.xy(row, col)
+            for row in range(alert_arr.shape[0]):
+                for col in range(alert_arr.shape[1]):
+                    val = alert_arr[row, col]
+
+                    if val not in (2, 3):
+                        continue
+
                     day_of_year = int(date_arr[row, col])
+                    if day_of_year <= 0 or day_of_year > 366:
+                        continue
 
-                    if 0 < day_of_year <= 366:
-                        alert_date = datetime(alert_year, 1, 1) + timedelta(days=day_of_year - 1)
-                        pt = Point(x, y)
+                    x, y = alert_src.xy(row, col)
+                    pt = Point(x, y)
 
-                        if aoi_geom.contains(pt):
-                            centroids.append({
-                                "geometry": pt,
-                                "alert_value": int(val),
-                                "alert_date": alert_date,
-                                "loss_type": "confirmed" if val == 3 else "probable"
-                            })
+                    if not prepared_aoi.intersects(pt):
+                        continue
 
-    return gpd.GeoDataFrame(centroids, crs="EPSG:4326")
+                    alert_date = datetime(alert_year, 1, 1) + timedelta(days=day_of_year - 1)
+
+                    centroids.append({
+                        "geometry": pt,
+                        "alert_value": int(val),
+                        "alert_date": alert_date,
+                        "loss_type": "confirmed" if val == 3 else "probable",
+                    })
+    finally:
+        os.remove(alert_path)
+        os.remove(date_path)
+
+    # Explicit geometry column (works even if empty)
+    if not centroids:
+        return gpd.GeoDataFrame(
+            columns=["geometry", "alert_value", "alert_date", "loss_type"],
+            geometry="geometry",
+            crs="EPSG:4326",
+        )
+
+    return gpd.GeoDataFrame(
+        centroids,
+        geometry="geometry",
+        crs="EPSG:4326",
+    )
 
 # ----------------------
 # Insert into Supabase/Postgres
@@ -98,6 +122,7 @@ def rasters_to_centroids(alert_bytes, date_bytes, aoi_geom, alert_year):
 def insert_into_db(gdf):
     conn = psycopg2.connect(DATABASE_URL)
     gdf["geom_wkt"] = gdf.geometry.apply(lambda g: g.wkt)
+
     with conn.cursor() as cur:
         for _, row in gdf.iterrows():
             cur.execute(
@@ -109,6 +134,7 @@ def insert_into_db(gdf):
                 (row["geom_wkt"], row["alert_value"], row["alert_date"], row["loss_type"]),
             )
         conn.commit()
+
     conn.close()
     print(f"✅ Inserted {len(gdf)} alerts into Supabase.")
 
