@@ -1,0 +1,33 @@
+name: Community Notes Generator
+
+on:
+  schedule:
+    - cron: '3 0,8,16 * * *'  # 00:03, 08:03, 16:03 UTC
+  workflow_dispatch:
+
+jobs:
+  insert-note:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate random geom + insert note
+        run: |
+          LAT=$(awk -v min=-60 -v max=60 'BEGIN{srand(); print min+rand()*(max-min)}')
+          LON=$(awk -v min=-150 -v max=150 'BEGIN{srand(); print min+rand()*(max-min)}')
+
+          GEOM="SRID=4326;POINT($LON $LAT)"
+
+          curl -s -o /dev/null -w "%{http_code}" \
+          -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/community_notes" \
+          -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"geom\": \"$GEOM\",
+            \"title\": \"system note\",
+            \"description\": \"system note\",
+            \"category\": \"other\",
+            \"created_by\": null,
+            \"created_by_name\": \"anonymous\",
+            \"validated\": false
+          }"
